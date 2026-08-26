@@ -1,0 +1,225 @@
+%% PINTLE INJECTOR + SPIRAL MANIFOLD — BASELINE SIZING SCRIPT
+%
+% PURPOSE: 
+% This script calculates the physical dimensions required to build a spiral 
+% (volute) manifold for a liquid rocket engine injector. 
+%
+% HOW IT WORKS:
+% 1. It takes thermodynamic data from NASA CEA.
+% 2. It calculates how much propellant is flowing and how fast it must exit.
+% 3. It sizes a spiral channel that gradually shrinks to keep the fluid 
+%    moving at a perfectly constant velocity as it wraps 360 degrees around.
+
+clear; clc; close all;
+
+%% =========================================================================
+%  SECTION 1 — CONSTANTS AND BASELINE GEOMETRY
+% =========================================================================
+
+% Standard gravity (used to convert Specific Impulse to exhaust velocity)
+g0 = 9.80665;           % [m/s^2] 
+
+% --- Injector Baseline Geometry (From METU Thesis Type-1) ---
+% We use proven dimensions for the exit gaps so we can focus solely on 
+% designing the manifold upstream of these gaps.
+alpha_deg = 20;      % [deg] The angle of the central pintle tip
+tag_mm    = 0.5;     % [mm]  The outer ring gap where LCH4 (fuel) exits
+Dt_mm     = 8;       % [mm]  The diameter of the central pintle tip
+tpg_mm    = 1.5;     % [mm]  The thickness of the pintle gap
+Dp_mm     = 3;       % [mm]  The diameter of the central rod
+Ltod_mm   = 0.5;     % [mm]  How far open the pintle is at max thrust
+
+%% =========================================================================
+%  SECTION 2 — THERMODYNAMIC DESIGN POINT (NASA CEA OUTPUTS)
+% =========================================================================
+% Instead of guessing, we use actual data from NASA CEA for a small-scale
+% LOX/LCH4 engine running fuel-rich to keep temperatures safe.
+
+OF      = 3.2;         % [-]   Ratio of Oxidizer to Fuel by weight
+Pc_bar  = 20.0;        % [bar] Pressure inside the combustion chamber
+Pc_Pa   = Pc_bar * 1e5;% [Pa]  Converted to Pascals for math formulas
+Thrust  = 750.0;       % [N]   Our target max thrust
+
+% --- NASA CEA Outputs ---
+% These numbers tell us how much energy the propellants release.
+Cstar   = 1831.2;      % [m/s] Characteristic velocity (combustion efficiency)
+Cf      = 1.4876;      % [-]   Coefficient of thrust (nozzle efficiency)
+
+% --- Exact Mass Flow Calculations ---
+% How much liquid do we actually need to pump to hit 750 N of thrust?
+% Formula: Mass Flow = Thrust / (C* x Cf)[cite: 3]
+mdotTotal = Thrust / (Cstar * Cf);              % [kg/s] Total flow required
+mdotOx    = mdotTotal * (OF / (OF + 1));        % [kg/s] Just the LOX
+mdotFuel  = mdotTotal * (1 / (OF + 1));         % [kg/s] Just the LCH4
+
+%% =========================================================================
+%  SECTION 3 — PROPELLANT PROPERTIES (CRYOGENIC LIQUIDS)
+% =========================================================================
+% We are sizing the manifold BEFORE the fluid burns. Therefore, the fluid 
+% is still a super-cold (cryogenic) liquid, not a hot gas.
+
+% --- LOX (Liquid Oxygen) at 111 Kelvin ---
+rho_LOX   = 1134;      % [kg/m^3] Density
+mu_LOX    = 1.86e-4;   % [Pa.s]   Viscosity (fluid friction/stickiness)
+sigma_LOX = 0.013;     % [N/m]    Surface tension 
+
+% --- LCH4 (Liquid Methane) at 139 Kelvin ---
+rho_CH4   = 402;       % [kg/m^3] Density
+mu_CH4    = 1.05e-4;   % [Pa.s]   Viscosity
+
+%% =========================================================================
+%  SECTION 4 — EXIT VELOCITIES
+% =========================================================================
+% We need to know exactly how fast the fluid is shooting out of the gaps.
+
+% Convert millimeters to meters for standard SI unit math
+Dt   = Dt_mm   * 1e-3;
+tag  = tag_mm  * 1e-3;
+Ltod = Ltod_mm * 1e-3;
+
+% --- LCH4 (fuel) side ---
+% Area of a thin ring = Circumference (pi * D) * thickness of the gap
+A_fuel = pi * Dt * tag;                 % [m^2] Area of the annular gap
+% Velocity = Mass Flow / (Density * Area)
+V_fuel = mdotFuel / (rho_CH4 * A_fuel); % [m/s] How fast fuel exits
+
+% --- LOX (oxidizer) side ---
+A_ox = pi * Dt * Ltod;                  % [m^2] Area of the radial opening
+V_ox = mdotOx / (rho_LOX * A_ox);       % [m/s] How fast oxidizer exits
+
+%% =========================================================================
+%  SECTION 5 — NON-DIMENSIONAL NUMBERS 
+% =========================================================================
+% These are standard aerospace engineering ratios used to predict how well
+% the two liquids will smash together and atomize into a spray.
+
+% Total Momentum Ratio (TMR) - Compares the smashing force of LOX vs LCH4[cite: 3]
+TMR = (mdotOx * V_ox * cosd(alpha_deg)) / ...
+      (mdotFuel * V_fuel + mdotOx * V_ox * sind(alpha_deg));[cite: 3]
+
+% Spray half-cone angle - Predicts how wide the spray fan will be[cite: 3]
+theta_cone_deg = acosd(1 / (1 + TMR));[cite: 3]
+
+%% =========================================================================
+%  SECTION 6 — SPIRAL MANIFOLD DESIGN (WITH AREA CUTOFF)
+% =========================================================================
+% THIS IS THE CORE OF THE PROJECT. We are designing the spiral channel.
+
+% Convert mass flow (kg/s) to volumetric flow (m^3/s)
+Q_fuel = mdotFuel / rho_CH4;    % [m^3/s] Total liquid entering the spiral
+
+% --- Linear bleed-off model ---
+% Imagine dividing a circle into 360 one-degree slices.
+theta_deg = linspace(0, 360, 361);          % [deg] 0 to 360 degrees
+% As fluid travels around, it leaks out the bottom. So, flow remaining 
+% decreases linearly from 100% at 0 degrees, down to 0% at 360 degrees.
+Q_remaining = Q_fuel * (1 - theta_deg/360); % [m^3/s]
+
+% --- Required cross-sectional area ---
+V_target = V_fuel;  % We want the fluid in the spiral to move at the EXACT 
+                    % same speed as the fluid exiting the gap.
+                    
+% Area = Flow / Velocity. Since flow decreases, Area must decrease too.
+A_theoretical = Q_remaining / V_target;     % [m^2]
+
+% THE MATH FIX: We cannot let the area hit 0 at 360 degrees, or the CAD 
+% and CFD software will crash (zero-thickness error). We force the spiral 
+% to stop shrinking once it hits 5% of its starting size.
+A_0 = A_theoretical(1);                     % Area at the start (0 degrees)
+A_min = 0.05 * A_0;                         % The 5% minimum floor
+
+% Apply the floor: Use the theoretical area, unless it drops below A_min.
+A_required = max(A_theoretical, A_min);     % [m^2]
+
+% --- Channel Sizing ---
+% Convert the required area into a physical circle radius for CAD sketching.
+r_channel = sqrt(A_required / pi);          % [m] 
+Dh_channel = 2 * r_channel;                 % [m] Diameter of the channel
+
+% --- Envelope geometry ---
+% Where does the spiral physically sit in space? 
+R_spiral_start_mm = 25;   % [mm] Starts 25mm away from the center
+R_spiral_end_mm   = 15;   % [mm] Spirals inward to 15mm from the center
+R_spiral = linspace(R_spiral_start_mm, R_spiral_end_mm, length(theta_deg)) * 1e-3; % [m]
+
+%% =========================================================================
+%  SECTION 7 — SCALE-EFFECT CHECK (BOUNDARY LAYER)
+% =========================================================================
+% Fluid sticks to walls, creating a slow-moving layer of fluid (boundary layer). 
+% If this layer is thicker than our tiny pipe, the pipe chokes.
+
+% Reynolds Number (Checks if flow is smooth or chaotic)
+Re_local = rho_CH4 .* V_target .* Dh_channel ./ mu_CH4;   
+
+% Calculate the thickness of the sticky boundary layer
+delta_BL = 5 * Dh_channel ./ sqrt(Re_local);   % [m]
+
+% Margin = Physical Pipe Radius - Boundary Layer Thickness
+% If Margin > 0, we have usable, fast-moving fluid in the center.
+margin = r_channel - delta_BL;                 % [m] 
+
+%% =========================================================================
+%  SECTION 8 — PRESSURE DROP ESTIMATE 
+% =========================================================================
+% Pushing liquid through a tiny, shrinking pipe requires pressure. We need 
+% to ensure this doesn't eat up our entire pressure budget.
+
+% Calculate friction factor based on Reynolds number
+f = zeros(size(Re_local));
+for i = 1:length(Re_local)
+    if Re_local(i) < 2300
+        f(i) = 64 / Re_local(i);                  % Smooth, laminar flow
+    else
+        f(i) = 0.316 / Re_local(i)^0.25;          % Chaotic, turbulent flow
+    end
+end
+
+% Calculate physical length of the spiral path
+dTheta_rad = deg2rad(theta_deg(2) - theta_deg(1));
+dL = R_spiral .* dTheta_rad;   % [m] Length of each 1-degree step
+
+% Darcy-Weisbach Equation: Calculates pressure lost to pipe friction
+dP_friction_segment = f .* (dL ./ Dh_channel) .* (0.5 * rho_CH4 .* V_target.^2);
+dP_friction_total = sum(dP_friction_segment);   % [Pa]
+
+% Pressure lost by crashing into the turning vanes
+K_vane = 0.3;   % Placeholder coefficient for vane resistance
+dP_vanes = K_vane * 0.5 * rho_CH4 * V_fuel^2;   % [Pa]
+
+dP_total = dP_friction_total + dP_vanes;        % [Pa] Total lost pressure
+
+%% =========================================================================
+%  SECTION 9 — VISUALIZATION PLOTS
+% =========================================================================
+% Generates graphs to verify the math worked correctly.
+
+figure('Name','Spiral manifold — area and channel size vs angle');
+subplot(2,1,1);
+plot(theta_deg, A_required*1e6, 'LineWidth', 1.5);
+xlabel('\theta (deg)'); ylabel('Required area (mm^2)');
+title('Stage C: Cross-sectional area profile (Notice it stops at 5% floor)');
+grid on;
+
+subplot(2,1,2);
+plot(theta_deg, r_channel*1e3, 'LineWidth', 1.5);
+xlabel('\theta (deg)'); ylabel('Equivalent channel radius (mm)');
+title('Stage D: Equivalent circular channel size');
+grid on;
+
+figure('Name','Spiral manifold — plan view');
+% Converts polar coordinates (radius & angle) to standard X,Y for plotting
+x_spiral = R_spiral .* cosd(theta_deg) * 1e3;   % [mm]
+y_spiral = R_spiral .* sind(theta_deg) * 1e3;   % [mm]
+plot(x_spiral, y_spiral, 'LineWidth', 2); axis equal; grid on;
+xlabel('x (mm)'); ylabel('y (mm)');
+title('Spiral manifold outer-wall envelope (Top-Down View)');
+
+figure('Name','Scale-effect check');
+plot(theta_deg, r_channel*1e3, 'LineWidth', 1.5); hold on;
+plot(theta_deg, delta_BL*1e3, 'LineWidth', 1.5);
+plot(theta_deg, margin*1e3, '--', 'LineWidth', 1.5);
+yline(0, 'k:');
+legend('Channel radius', 'Boundary layer thickness', 'Margin', 'Location', 'best');
+xlabel('\theta (deg)'); ylabel('mm');
+title('Section 7: Channel size vs. boundary layer thickness');
+grid on;

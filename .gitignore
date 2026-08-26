@@ -1,0 +1,29 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+*.lof
+*.lot
+
+# SolidWorks temp/lock files
+~$*.SLDPRT
+~$*.SLDASM
+~$*.SLDDRW
+
+# Third-party copyrighted reference material — kept locally for personal reference,
+# cited (not hosted) in references/bibliography.md
+/Design Guide/
+/ResearchProject Papers/
+/Rocket Propulsion Elements.pdf
+/Final Year Project.pdf

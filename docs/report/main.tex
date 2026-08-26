@@ -1,0 +1,509 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{caption}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{multirow}
+
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+\setlength{\headheight}{14pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Preliminary Analytical Design of a Spiral-Vane Pintle Injector Manifold}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+
+\title{\textbf{Preliminary Analytical Design and Feasibility Study of a\\
+Spiral--Vane Manifold for a Throttling LOX/LCH4 Pintle Injector}}
+\author{Prathit Sharma \\ \small B.Tech. Mechanical Engineering, Indian Institute of Petroleum and Energy \and Sreyesha Akella \\ \small B.Tech. Aerospace Engineering, SRM Institute of Science and Technology}
+\date{BSERC Summer Internship Report -- August 2026}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\Huge\bfseries Preliminary Analytical Design and Feasibility Study of a Spiral--Vane Manifold for a Throttling LOX/LCH4 Pintle Injector\par}
+\vspace{2cm}
+{\Large BSERC Summer Internship Report\par}
+\vspace{1.5cm}
+{\large Submitted by\par}
+\vspace{0.3cm}
+{\Large\bfseries Prathit Sharma\par}
+\vspace{0.3cm}
+{\large B.Tech. Mechanical Engineering\par}
+{\large Indian Institute of Petroleum and Energy\par}
+\vspace{1cm}
+{\Large\bfseries Sreyesha Akella\par}
+\vspace{0.3cm}
+{\large B.Tech. Aerospace Engineering\par}
+{\large SRM Institute of Science and Technology\par}
+\vspace{2cm}
+{\large August 2026\par}
+\vfill
+\end{titlepage}
+
+\pagenumbering{roman}
+
+\begin{center}
+{\Large\bfseries Abstract\par}
+\end{center}
+\vspace{0.4cm}
+\noindent
+Movable pintle injectors used in deep-throttling liquid rocket engines commonly feed the outer (fuel) annulus through a single side-port inlet, a geometry known to impart tangential momentum and produce circumferentially non-uniform, swirling flow. Because the annular gap geometry itself changes continuously as the pintle throttles, this swirl is exposed differently at every throttle position, degrading spray symmetry and combustion uniformity. This report documents the preliminary, pre-CAD analytical design phase of an internship project investigating whether a spiral (volute) manifold combined with a ring of turning vanes -- a geometry adapted from turbomachinery volute casings -- can enforce uniform circumferential flow in a millimetre-scale LOX/LCH4 pintle injector manifold. A thermodynamic design point (O/F = 3.2, $P_c$ = 20 bar, thrust = 750 N) was established using the NASA-Glenn Chemical Equilibrium with Applications (CEA) code, and a baseline pintle/sleeve geometry was adopted from a validated literature design. A MATLAB sizing script was developed to derive the spiral cross-sectional area profile from mass conservation, evaluate the governing non-dimensional numbers (Reynolds number, Weber number, Total Momentum Ratio), check the scale-effect (boundary-layer) validity of the spiral concept at millimetre scale, and estimate the manifold pressure-drop budget. The analysis indicates that the spiral concept passes its scale-effect gate (minimum channel-to-boundary-layer margin of 0.43 mm) and remains comfortably within the pressure-drop budget (0.41 bar against a 4.0 bar allowance), motivating progression to CAD modelling and CFD verification, which lie outside the scope of this report.
+
+\clearpage
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\clearpage
+\pagenumbering{arabic}
+
+% =====================================================================
+\section{Introduction}
+% =====================================================================
+
+\subsection{Background and Motivation}
+
+In variable-thrust liquid rocket engines, the pintle injector is a single, centrally located injection element that replaces the many discrete orifices of a conventional injector faceplate. First patented by G.W. Elverum of TRW in 1971 \cite{elverum1971} and flown on the Apollo Lunar Module descent engine, the pintle injector remains a common choice for deep-throttling applications because of its favourable combustion-stability characteristics and its ability to vary injection area continuously by translating a central pintle rod within a fixed sleeve \cite{dressler2000,nardi_rezende}. A comprehensive review of the pintle injector's heritage and operating characteristics is given by Dressler and Bauer \cite{dressler2000}.
+
+In a typical pintle injector, one propellant (often the oxidizer) is fed down the centre of the pintle rod and discharged radially at the tip, while the second propellant (often the fuel) is fed into an annular cavity surrounding the pintle tip and discharged axially through a thin annular gap. When this annular cavity -- the \emph{manifold} -- is fed from a single side-port inlet, the incoming flow carries tangential momentum into the cavity, producing torsional swirl rather than the uniform circumferential distribution required for a symmetric spray fan. For a \emph{movable} pintle, this problem is compounded: as the annular gap width changes with throttle position, the same manifold swirl is exposed to a different flow condition at every throttle setting, so any asymmetry cannot simply be tuned out at one operating point.
+
+\subsection{Problem Statement}
+
+The specific engineering question addressed by this project is whether a spiral (volute) manifold -- a tapering, self-similar cavity geometry conventionally used in turbomachinery casings (e.g. Francis turbine volutes, pump casings) to distribute or collect flow uniformly around a circumference -- can be adapted to the millimetre-scale annular manifold of a pintle injector, and whether adding a ring of turning vanes at the manifold--annulus interface can remove residual tangential momentum before the flow reaches the injection gap. The working hypothesis is that sizing the spiral's cross-sectional area to shrink in proportion to the flow already bled off around its circumference (a direct consequence of mass conservation) will yield a substantially more uniform exit velocity than a plain single-side-inlet cavity.
+
+\subsection{Objectives and Scope of This Report}
+
+The objectives of the internship project, in full, span thermodynamic sizing, manifold geometry derivation, CAD modelling of both a spiral+vane and a baseline (single-side-inlet) manifold, CFD verification, cold-flow manufacture, and experimental testing. \textbf{This report documents only the first, analytical phase of that project} -- the thermodynamic design point, baseline injector geometry, spiral manifold sizing, non-dimensional flow checks, and pressure-drop budget -- all of which were completed using NASA CEA and a custom MATLAB sizing script, prior to any CAD or CFD work. CAD modelling, CFD simulation, manufacturing, and testing are identified as future work in Section \ref{sec:conclusion} but are not otherwise detailed here, since they had not yet been carried out at the time of writing.
+
+% =====================================================================
+\section{Literature Review}
+% =====================================================================
+
+The pintle injector's origin traces to a coaxial-pintle reactant injector patented by Elverum of TRW in 1971 \cite{elverum1971}; Dressler and Bauer \cite{dressler2000} document its subsequent heritage across engines ranging from 10 N thrusters to the 3-meganewton-class Low-Cost Pintle Engine, and attribute its popularity in throttling applications to combustion-stability characteristics inherent to its flowfield. Nardi Rezende et al. \cite{nardi_rezende} present experimental results from building and testing pintle injector prototypes, discussing how the key geometric parameters (annular gap, pintle tip diameter, skip distance) govern propellant mass flow split and are used to control the injector's operating point.
+
+A formal, spray-characteristic-driven design procedure for movable pintle injectors is given by Son et al. \cite{son2017}, who derive the spray half-angle and Sauter mean diameter as functions of the Total Momentum Ratio (TMR) and a characteristic number relating the fuel-side and oxidizer-side velocities and gap dimensions. Erkal's thesis \cite{erkal2019} builds directly on this methodology, presenting a validated baseline geometry (pintle angle, annular gap, tip diameter, pintle rod diameter) for a Type-1 injector design; that baseline geometry is adopted directly in the present work (Section \ref{sec:baseline-geom}) so that any measured or predicted difference between manifold configurations can be attributed to the manifold design rather than to a re-sized pintle tip.
+
+Propellant choice is directly informed by Vasques and Haidn \cite{vasques2017}, who study the effect of pintle injector element geometry on combustion specifically for a liquid oxygen/liquid methane (LOX/LCH4) engine -- the same propellant combination used in this project -- and report that geometric parameters strongly influence combustion performance for this propellant pair. More recently, Cha, Andersson and Bohlin \cite{cha2023} present a numerical optimization of a pintle injector for a deep-throttleable LOX/GCH4 engine using convex quadratic programming over spray angle, vaporization distance, and Sauter mean diameter, underlining that pintle injector design for throttling applications involves a genuinely multi-parameter optimization rather than a single closed-form solution. Rajendran et al. \cite{rajendran2020} provide a broader design-and-optimization treatment of pintle injectors for liquid rocket engines, while Sanjit et al. \cite{sanjit_aaj} discuss the coaxial-swirl injector as an alternative atomization architecture, offering a useful point of contrast to the pintle injector's own atomization mechanism (impingement-driven rather than swirl-driven breakup).
+
+None of the pintle-specific studies reviewed here explicitly analyse circumferential non-uniformity arising from a single side-fed manifold inlet, nor do they propose a volute-style manifold correction. This gap -- between well-established pintle sizing methodology on one hand, and manifold-level flow distribution on the other -- motivates the analytical investigation documented in this report.
+
+% =====================================================================
+\section{Theoretical Background}
+% =====================================================================
+
+\subsection{Conservation of Mass and the Spiral Area Profile}
+
+The spiral manifold's sizing rests entirely on the steady, incompressible continuity relation
+\begin{equation}
+\dot{m} = \rho A V = \text{constant}.
+\end{equation}
+If fluid is assumed to bleed off the spiral cavity uniformly per unit angle $\theta$ travelled around the circumference, the flow remaining inside the cavity at angle $\theta$ is
+\begin{equation}
+\dot{m}(\theta) = \dot{m}_{\text{fuel}}\left(1 - \frac{\theta}{2\pi}\right),
+\end{equation}
+and, to hold the local velocity constant (the target uniformity condition adopted for this design), the required local cross-sectional area is
+\begin{equation}
+A(\theta) = \frac{\dot{m}(\theta)}{\rho\, V_{\text{target}}} = A_0\left(1 - \frac{\theta}{2\pi}\right),
+\label{eq:area-profile}
+\end{equation}
+where $A_0$ is the area at the inlet ($\theta = 0$). Equation \ref{eq:area-profile} would drive the area to zero at $\theta = 2\pi$, which is not physically realizable (it would collapse the manifold to a zero-thickness slit and crash any downstream meshing); a 5\% minimum-area floor, $A_{\min} = 0.05\,A_0$, is therefore imposed near the end of the spiral.
+
+\subsection{Reynolds Number and Boundary-Layer Thickness}
+
+The local Reynolds number in the spiral channel is
+\begin{equation}
+Re = \frac{\rho V D_h}{\mu},
+\end{equation}
+where $D_h$ is the hydraulic diameter of the (assumed circular, for a first-pass estimate) channel cross-section. To provide a conservative scale-effect check, the laminar flat-plate boundary-layer growth relation
+\begin{equation}
+\delta \approx \frac{5x}{\sqrt{Re_x}}
+\end{equation}
+is applied even though the local Reynolds numbers in this design are firmly in the turbulent regime ($Re \sim 10^5$); because a turbulent boundary layer grows more slowly with distance than this laminar estimate, using the laminar formula deliberately \emph{overestimates} $\delta$ and therefore \emph{underestimates} the available margin -- a conservative, safe-direction approximation rather than an exact prediction. The scale-effect criterion applied is that the margin $r_{\text{channel}} - \delta$ must remain positive (and ideally comfortably so) at every angular station; if the boundary layer were to fill the channel, the inviscid, constant-velocity assumption underlying Equation \ref{eq:area-profile} would break down.
+
+\subsection{Pressure Drop (Darcy--Weisbach)}
+
+Frictional pressure loss along the spiral is estimated with the Darcy--Weisbach relation,
+\begin{equation}
+\Delta P = f\,\frac{L}{D_h}\,\frac{1}{2}\rho V^2,
+\end{equation}
+with the friction factor $f$ taken as $64/Re$ in the laminar regime and via the Blasius correlation $f = 0.316/Re^{0.25}$ in the turbulent regime. A single lumped minor-loss coefficient $K$ is used to estimate the additional pressure drop across the turning vane ring,
+\begin{equation}
+\Delta P_{\text{vane}} = K\,\frac{1}{2}\rho V^2,
+\end{equation}
+with $K = 0.3$ adopted as a representative flow-straightener value pending a vane geometry-specific figure. The total estimated manifold pressure drop is compared against a pressure-drop budget of 20\% of chamber pressure, a standard rule of thumb for injector design.
+
+\subsection{Spray and Atomization Indicators}
+
+Three further non-dimensional quantities, following the methodology of Son et al. \cite{son2017} and Erkal \cite{erkal2019}, are used to sanity-check the spray quality implied by the sizing:
+
+\emph{Total Momentum Ratio (TMR)}, which governs spray impingement and half-angle:
+\begin{equation}
+\text{TMR} = \frac{\dot{m}_{ox} V_{ox} \cos\alpha}{\dot{m}_{fuel} V_{fuel} + \dot{m}_{ox} V_{ox} \sin\alpha}, \qquad
+\theta_{\text{cone}} = \cos^{-1}\!\left(\frac{1}{1+\text{TMR}}\right),
+\end{equation}
+where $\alpha$ is the pintle tip half-angle.
+
+\emph{Characteristic number $K_1$}, relating the fuel-side and oxidizer-side exit conditions:
+\begin{equation}
+K_1 = \frac{V_{fuel}\, t_{ag}}{V_{ox}\, L_{tod}}.
+\end{equation}
+
+\emph{Weber number}, an atomization indicator (higher $We$ indicates better sheet breakup):
+\begin{equation}
+We = \frac{\rho_{fuel}\, L_{tod}\,(V_{fuel}-V_{ox})^2}{\sigma_{fuel}}.
+\end{equation}
+This Weber number formula is carried over from a liquid-gas correlation in the literature \cite{erkal2019}; since both propellants in this design are liquid (LOX/LCH4), it is treated here as a qualitative ``is it much greater than 1'' sanity check rather than a validated liquid--liquid breakup model (see Section \ref{sec:limitations}).
+
+% =====================================================================
+\section{Methodology}
+% =====================================================================
+
+\subsection{Propellant Selection and Thermodynamic Design Point}
+
+Liquid oxygen (LOX) and liquid methane (LCH4) were selected as the propellant pair, consistent with recent pintle injector research for this propellant combination \cite{vasques2017,cha2023}, and with an oxidizer-centred architecture: LOX flows down the central pintle rod and exits radially at the tip through the variable opening, while LCH4 flows through the fixed outer annular gap and exits axially.
+
+The thermodynamic design point was obtained from the NASA-Glenn Chemical Equilibrium with Applications (CEA) code \cite{mcbride1994,gordon1996}, run for a fuel-rich mixture ratio sweep (O/F = 3.2, 3.3, 3.4) and a chamber pressure sweep (20--30 bar) at a supersonic area ratio of 5. The design point selected for sizing is summarized in Table \ref{tab:cea-point}.
+
+\begin{table}[h]
+\centering
+\caption{Thermodynamic design point (NASA CEA).}
+\label{tab:cea-point}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Parameter & Value \\
+\midrule
+Oxidizer/Fuel ratio (O/F) & 3.2 \\
+Chamber pressure ($P_c$) & 20 bar \\
+Target thrust & 750 N \\
+Supersonic area ratio ($A_e/A_t$) & 5 \\
+Characteristic velocity ($C^*$) & 1831.2 m/s \\
+Thrust coefficient ($C_f$) & 1.4876 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+O/F = 3.2 was selected as it produced the highest $C^*$ in the sweep while remaining fuel-rich (lower chamber temperature, easier thermal management); $P_c$ = 20 bar was selected as a conservative choice against the higher end of the sweep, trading a small performance penalty for reduced thermal loading. The total and per-propellant mass flow rates follow directly from $C^*$, $C_f$ and the target thrust:
+\begin{equation}
+\dot{m}_{\text{total}} = \frac{\text{Thrust}}{C^* C_f} = \frac{750}{1831.2 \times 1.4876} \approx 0.2754~\text{kg/s},
+\end{equation}
+split by the O/F ratio into $\dot{m}_{ox} \approx 0.2098$~kg/s and $\dot{m}_{fuel} \approx 0.0656$~kg/s.
+
+\subsection{Baseline Injector Geometry}
+\label{sec:baseline-geom}
+
+Rather than re-deriving the pintle/sleeve geometry from first principles, the Type-1 baseline geometry validated in Erkal's thesis \cite{erkal2019} (Table 3.1 therein) was adopted directly, so that the manifold design remains the only variable under investigation. This baseline geometry, though originally validated against a different (LOX/GCH4) design point, is treated in this report as a checked starting point rather than an unquestioned one; Sections \ref{sec:results} and \ref{sec:limitations} verify that it still produces physically sane velocities and non-dimensional numbers under the present LOX/LCH4 design point.
+
+\begin{table}[h]
+\centering
+\caption{Baseline pintle/sleeve geometry, adopted from Erkal \cite{erkal2019}, Table 3.1, Injector Type-1.}
+\label{tab:baseline-geom}
+\begin{tabular}{@{}llc@{}}
+\toprule
+Symbol & Parameter & Value \\
+\midrule
+$\alpha$ & Pintle tip half-angle & 20$^\circ$ \\
+$t_{ag}$ & Annular gap (outer, LCH4 exit) & 0.5 mm \\
+$D_t$ & Pintle tip diameter & 8 mm \\
+$t_{pg}$ & Pintle gap thickness & 1.5 mm \\
+$D_p$ & Pintle rod diameter & 3 mm \\
+$L_{tod}$ & Pintle opening distance at max thrust & 0.5 mm \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The thin-annulus approximation ($A \approx \pi D t$) is used for both exit flow areas, appropriate here since both gaps (0.5 mm) are much smaller than the corresponding diameter (8 mm).
+
+\subsection{Propellant Properties at Feed Conditions}
+
+CEA's own thermodynamic database is restricted to fixed reference-state propellant temperatures (111.64 K for LCH4, 90.17 K for LOX), which differ from the intended feed-system conditions of this design (139 K / 111 K respectively, at 25 bar). Because CEA's combustion-chemistry outputs ($C^*$, $C_f$) are only weakly sensitive to this difference (an estimated $<$1\% effect), they are retained from the CEA run; however, the \emph{density} used for hydrodynamic sizing of the manifold is sensitive to feed temperature and was therefore looked up separately, at the actual intended feed conditions, from the NIST Chemistry WebBook isothermal and saturation-curve fluid tables. The values used are summarized in Table \ref{tab:propellant-props}.
+
+\begin{table}[h]
+\centering
+\caption{Propellant properties at feed conditions (NIST Chemistry WebBook \cite{nist_webbook}).}
+\label{tab:propellant-props}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Propellant \& state & Density $\rho$ & Viscosity $\mu$ & Surface tension $\sigma$ \\
+\midrule
+LOX, 111 K, 25 bar & 1037.1 kg/m$^3$ & $1.2216\times10^{-4}$ Pa$\cdot$s & 0.00815 N/m \\
+LCH4, 139 K, 25 bar & 381.88 kg/m$^3$ & $7.103\times10^{-5}$ Pa$\cdot$s & 0.00774 N/m \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Surface tension values are taken from NIST's saturation-curve table (tabulated as a function of temperature alone at each fluid's own saturation pressure -- 5.82 bar for LOX at 111 K, 6.09 bar for LCH4 at 139 K -- rather than at 25 bar), used as a proxy for the compressed-liquid value since surface tension is only weakly pressure-dependent this far from each fluid's critical point.
+
+\subsection{Analytical Sizing Tool}
+
+A MATLAB script was developed to carry the design point and baseline geometry of Sections 4.1--4.3 through to a spiral manifold size, a set of non-dimensional spray-quality checks, a scale-effect (boundary-layer) validation, and a pressure-drop estimate. The script is organized into eleven sections: constants and baseline geometry; the thermodynamic design point; propellant properties; exit velocities; non-dimensional numbers; spiral manifold area profile (with the 5\% area floor); the scale-effect check; the pressure-drop estimate; a vane-count sensitivity sweep; visualization; and a summary/limitations log. Every quantitative result in Section \ref{sec:results} is drawn directly from this script's output.
+
+% =====================================================================
+\section{Calculations and Results}
+\label{sec:results}
+% =====================================================================
+
+\subsection{Mass Flow Split and Exit Velocities}
+
+Using the exit areas from the thin-annulus approximation ($A_{fuel} = \pi D_t t_{ag}$, $A_{ox} = \pi D_t L_{tod}$) together with the mass flow split and propellant densities of Sections 4.1 and 4.3, the exit velocities are:
+
+\begin{table}[h]
+\centering
+\caption{Mass flow rates and exit velocities.}
+\label{tab:exit-vel}
+\begin{tabular}{@{}lc@{}}
+\toprule
+Quantity & Value \\
+\midrule
+Total mass flow, $\dot{m}_{\text{total}}$ & 0.2754 kg/s \\
+Oxidizer mass flow, $\dot{m}_{ox}$ & 0.2098 kg/s \\
+Fuel mass flow, $\dot{m}_{fuel}$ & 0.0656 kg/s \\
+Fuel (LCH4, annular) exit velocity, $V_{fuel}$ & 13.66 m/s \\
+Oxidizer (LOX, radial) exit velocity, $V_{ox}$ & 16.10 m/s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Non-Dimensional Spray Parameters}
+
+\begin{table}[h]
+\centering
+\caption{Non-dimensional numbers and spray angle estimates.}
+\label{tab:nondim}
+\begin{tabular}{@{}lc@{}}
+\toprule
+Quantity & Value \\
+\midrule
+$K_1$ (characteristic number) & 0.849 \\
+TMR (Total Momentum Ratio) & 1.548 \\
+Spray half-angle, momentum balance & 66.9$^\circ$ \\
+Spray half-angle, empirical correlation \cite{erkal2019} & 57.3$^\circ$ \\
+Weber number & 146.3 \\
+Reynolds number, fuel side (annular gap) & 36{,}720 \\
+Reynolds number, oxidizer side (radial gap) & 68{,}324 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Both Reynolds numbers place the exit flows firmly in the turbulent regime. The two independent spray half-angle estimates (momentum balance and empirical correlation) agree to within about 15\%, consistent with the disagreement typically reported between these two methods in the literature and not indicative of an error.
+
+\subsection{Spiral Manifold Area Profile}
+
+Applying Equation \ref{eq:area-profile} to the fuel-side volumetric flow rate ($Q_{fuel} = \dot{m}_{fuel}/\rho_{CH4}$) at the target constant velocity $V_{fuel}$ gives a starting cross-sectional area $A_0 \approx 12.6$~mm$^2$, tapering to the 5\% floor $A_{\min} \approx 0.63$~mm$^2$ near $\theta = 360^\circ$. Figure \ref{fig:area-channel} shows the resulting area and equivalent circular channel-radius profiles; Figure \ref{fig:planview} shows the corresponding plan-view spiral envelope, generated for an assumed (placeholder) outer-wall radius shrinking linearly from 25 mm to 15 mm around the circumference -- a packaging assumption only, not yet derived from an actual injector body envelope (see Section \ref{sec:limitations}).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{fig1_area_channel_profile.png}
+\caption{Required spiral cross-sectional area (top) and equivalent circular channel radius (bottom) as a function of angular position $\theta$, stopping at the 5\% area floor near $\theta = 360^\circ$.}
+\label{fig:area-channel}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\textwidth]{fig2_spiral_planview.png}
+\caption{Plan-view outer-wall envelope of the spiral manifold, generated using a placeholder linear radius taper (25~mm $\to$ 15~mm) for path-length estimation only.}
+\label{fig:planview}
+\end{figure}
+
+\subsection{Scale-Effect and Boundary-Layer Validation}
+
+Because the spiral channel operates at millimetre scale rather than the metre scale of a typical turbomachinery volute, the central question for this concept is whether the channel remains large compared to the boundary layer growing along its walls. Applying the conservative (laminar flat-plate) boundary-layer estimate of Section 3.2 across the full spiral path (local Reynolds number ranging from 293{,}764 at $\theta=0^\circ$ down to 65{,}688 at $\theta=360^\circ$ as the channel narrows) gives a minimum channel-radius-to-boundary-layer margin of 0.4298~mm, occurring at $\theta \approx 343^\circ$ -- i.e. near the narrow end of the spiral, as expected. Figure \ref{fig:scale-effect} plots the channel radius, boundary-layer thickness, and margin around the full circumference.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{fig3_scale_effect_check.png}
+\caption{Scale-effect check: channel radius, (conservatively estimated, laminar-flat-plate) boundary-layer thickness, and resulting margin, as a function of angular position.}
+\label{fig:scale-effect}
+\end{figure}
+
+Since the minimum margin remains positive across the full spiral, the design passes the scale-effect gate defined for this first-pass analysis: the boundary layer does not fill the channel at any angular station, so the inviscid, constant-velocity taper assumption underlying the area profile is not immediately invalidated. This result is flagged in the sizing script as ``margin looks reasonable for a first-pass design; proceed to CFD verification before committing'' -- i.e. a go/no-go filter, not a substitute for three-dimensional viscous analysis.
+
+\subsection{Pressure Drop Budget}
+
+Table \ref{tab:pressure-drop} and Figure \ref{fig:pressure-drop} summarize the estimated manifold pressure drop against the 20\%-of-$P_c$ budget (4.0 bar).
+
+\begin{table}[h]
+\centering
+\caption{Manifold pressure drop estimate vs.\ budget.}
+\label{tab:pressure-drop}
+\begin{tabular}{@{}lc@{}}
+\toprule
+Component & Pressure drop \\
+\midrule
+Spiral friction (Darcy--Weisbach, Blasius) & 0.2984 bar \\
+Turning vanes ($K_{\text{vane}} = 0.3$, placeholder) & 0.1069 bar \\
+\textbf{Total manifold pressure drop} & \textbf{0.4053 bar} \\
+Budget (20\% of $P_c$ = 20 bar) & 4.0000 bar \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{fig4_pressure_drop_breakdown.png}
+\caption{Manifold pressure-drop breakdown (friction and vane minor loss) against the pressure-drop budget.}
+\label{fig:pressure-drop}
+\end{figure}
+
+The total estimated manifold pressure drop is roughly one-tenth of the available budget, indicating that pressure drop is not a limiting constraint on this design -- the scale-effect (boundary-layer) check of Section 5.4 is the more restrictive of the two go/no-go gates evaluated in this analysis.
+
+\subsection{Vane-Count Sensitivity}
+
+Because the vane loss coefficient used above ($K_{\text{vane}} = 0.3$) is itself a placeholder pending a finalized vane geometry, a sensitivity sweep was run using a crude linear loss-vs-count model ($K \approx 0.02 \times n_{\text{vanes}}$) to check that a reasonable range of vane counts would not, on its own, push the total pressure drop out of budget.
+
+\begin{table}[h]
+\centering
+\caption{Vane-count sensitivity (crude placeholder loss model).}
+\label{tab:vane-sweep}
+\begin{tabular}{@{}cc@{}}
+\toprule
+Number of vanes & Total manifold $\Delta P$ \\
+\midrule
+6 & 0.3411 bar \\
+8 & 0.3554 bar \\
+12 & 0.3839 bar \\
+16 & 0.4124 bar \\
+24 & 0.4694 bar \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{fig5_vane_sensitivity.png}
+\caption{Total manifold pressure drop vs.\ number of turning vanes (crude placeholder loss model), against the 4.0 bar budget.}
+\label{fig:vane-sweep}
+\end{figure}
+
+Across the full swept range (6 to 24 vanes), the total pressure drop remains well under half of the available budget, suggesting the final vane count can be selected primarily on swirl-removal effectiveness rather than being constrained by pressure drop.
+
+% =====================================================================
+\section{Discussion}
+% =====================================================================
+
+\subsection{Assumptions and Limitations}
+\label{sec:limitations}
+
+This analysis is a first-pass, one-dimensional sizing exercise, and several of its inputs are explicitly acknowledged placeholders rather than finalized values. These are listed here so that the results of Section \ref{sec:results} are read with the correct degree of confidence:
+
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{Linear bleed-off and constant-velocity target.} The area profile of Equation \ref{eq:area-profile} assumes flow bleeds off the spiral uniformly per unit angle, and targets constant velocity rather than constant static pressure around the circumference. Both are simplifying, physically reasonable starting choices, not results proven optimal by this analysis; the vane-count sweep of Section 5.6 is a starting point for further sensitivity study, not a final optimization.
+\item \textbf{Vane loss coefficients are placeholders.} $K_{\text{vane}} = 0.3$ (Section 5.5) and the linear $K$-vs-count model (Section 5.6) are representative values, not measured or CFD-derived figures, and should be replaced once vane geometry is finalized.
+\item \textbf{The Weber number formula is carried over from a liquid--gas correlation.} As noted in Section 3.4, this design's fuel is liquid (not gaseous, as in the correlation's original derivation), so the computed Weber number ($We = 146.3$) should be treated as a qualitative atomization sanity check only, not a validated liquid--liquid breakup prediction.
+\item \textbf{The boundary-layer estimate is conservative, not exact.} The laminar flat-plate formula used in Section 5.4 is known to overestimate boundary-layer thickness at the design's actual (turbulent) Reynolds numbers; this makes the computed margin (0.43 mm) an underestimate of the true margin, i.e. the conservative, safe-direction error -- but it is not a substitute for a turbulent boundary-layer correlation or CFD.
+\item \textbf{The spiral envelope radii (25~mm $\to$ 15~mm) are unjustified placeholders.} They were chosen only to compute a path length for the Section 5.5 friction estimate and are not derived from mass flow, channel size, or any actual packaging constraint. They must be replaced with values set by the real injector body outer diameter and manufacturing envelope before the pressure-drop result of Section 5.5 can be fully trusted.
+\item \textbf{The baseline geometry (Table \ref{tab:baseline-geom}) was validated at a different design point.} Erkal's Type-1 geometry \cite{erkal2019} was derived for a LOX/GCH4 (gaseous fuel) mission; adopting it directly for a LOX/LCH4 (liquid fuel) design point is why Sections 5.1--5.2 exist -- to confirm the geometry still produces physically sane velocities and non-dimensional numbers under the new propellant pair, which it does, but it remains a borrowed starting point rather than a geometry re-derived for this specific mission.
+\item \textbf{This analysis does not replace CFD or cold-flow testing.} Every number in Section \ref{sec:results} should be treated as a go/no-go filter for progressing to the next project phase, not as a final design value.
+\end{itemize}
+
+\subsection{Relation to the Literature}
+
+The propellant pair and general pintle geometry used here follow directly from Vasques and Haidn \cite{vasques2017} and Erkal \cite{erkal2019} respectively, and the spray-quality checks (TMR, $K_1$, empirical spray-angle correlation) follow the methodology established by Son et al. \cite{son2017} and used by Erkal \cite{erkal2019}. The manifold-uniformity problem itself, however, is not directly addressed by any of the pintle-specific literature reviewed in Section 2; the spiral+vane concept investigated here is instead an adaptation of a manifold geometry conventionally used in turbomachinery casings, applied at a considerably smaller (millimetre) scale than its usual (metre-scale) application. The scale-effect check of Section 5.4 is, in effect, the analytical test of whether that cross-domain adaptation remains physically valid at this scale -- and the result of this preliminary analysis is that it does, subject to the limitations listed above.
+
+% =====================================================================
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+% =====================================================================
+
+This report has documented the preliminary, analytical (pre-CAD) design phase of a spiral-vane manifold for a throttling LOX/LCH4 pintle injector. Starting from a NASA CEA thermodynamic design point (O/F = 3.2, $P_c$ = 20 bar, 750 N thrust) and a baseline pintle/sleeve geometry adopted from the literature, a MATLAB sizing script was used to derive the spiral manifold's area profile from mass conservation, evaluate spray-quality non-dimensional numbers, and check two go/no-go gates: a scale-effect (boundary-layer) validity check and a pressure-drop budget check. Both gates were passed: the minimum channel-to-boundary-layer margin (0.43 mm) remains positive across the full spiral, and the estimated total manifold pressure drop (0.41 bar) remains well within the 4.0 bar budget.
+
+These results support proceeding to the next phase of the project, which lies outside the scope of this report: parametric CAD modelling of both the spiral+vane manifold and a matched baseline (single-side-inlet) manifold in SolidWorks, CFD verification of the scale-effect and uniformity assumptions made here, and -- pending manufacturing feasibility -- cold-flow testing to experimentally compare circumferential uniformity between the two manifold configurations. Several of the placeholder inputs identified in Section \ref{sec:limitations} (vane loss coefficient, spiral envelope radii, bleed-off profile) should be revisited and refined using CFD results before being carried into a manufacturable design.
+
+% =====================================================================
+\begin{thebibliography}{99}
+
+\bibitem{elverum1971} G.~W.~Elverum, TRW Inc., ``Combustion Apparatus Having a Coaxial-Pintle Reactant Injector,'' U.S. Patent Application, filed 1 November 1971 (issued as U.S. Patent 4{,}206{,}594).
+
+\bibitem{dressler2000} G.~A.~Dressler and J.~M.~Bauer, ``TRW Pintle Engine Heritage and Performance Characteristics,'' AIAA 2000-3871, 36th AIAA/ASME/SAE/ASEE Joint Propulsion Conference, 2000.
+
+\bibitem{nardi_rezende} R.~Nardi~Rezende, A.~Pimenta, and V.~de~Castro~Perez, ``Experiments with the Pintle Injector.''
+
+\bibitem{son2017} M.~Son, K.~Radhakrishnan, J.~Koo, O.~C.~Kwon, and H.~D.~Kim, ``Design Procedure of a Movable Pintle Injector for Liquid Rocket Engines,'' \emph{Journal of Propulsion and Power}, Vol.~33, No.~4, 2017. DOI: 10.2514/1.B36301.
+
+\bibitem{erkal2019} B.~Erkal, ``Design of a Pintle Injector,'' M.S. Thesis, Middle East Technical University, September 2019.
+
+\bibitem{vasques2017} B.~B.~Vasques and O.~J.~Haidn, ``Effect of Pintle Injector Element Geometry on Combustion in a Liquid Oxygen/Liquid Methane Rocket Engine,'' 7th European Conference for Aeronautics and Aerospace Sciences (EUCASS), 2017. DOI: 10.13009/EUCASS2017-88.
+
+\bibitem{cha2023} J.~Cha, E.~Andersson, and A.~Bohlin, ``A Numerical Approach to Optimize the Design of a Pintle Injector for LOX/GCH4 Liquid-Propellant Rocket Engine,'' \emph{Aerospace}, Vol.~10, Article 582, 2023.
+
+\bibitem{rajendran2020} R.~Rajendran, S.~Prasad, S.~Subhashree, T.~S.~Phutane, and V.~S.~Saoor, ``Design and Optimization of Pintle Injector for Liquid Rocket Engine,'' \emph{International Journal of Engineering Applied Sciences and Technology (IJEAST)}, Vol.~5, Issue~1, pp.~151--159, 2020.
+
+\bibitem{sanjit_aaj} K.~K.~Sanjit, A.~G.~Raj, A.~B.~Ashok, Manohar~N, P.~R.~V, H.~G.~M, and D.~S.~Reddy, ``Theoretical Modeling and Design of a Coaxial-Swirl Injector and Thruster Components for MMH/NTO-Based Upper Stage Thrusters,'' \emph{Acceleron Aerospace Journal (AAJ)}, Vol.~5, Issue~1, Article AAJ.11.2106-2541.
+
+\bibitem{mcbride1994} B.~J.~McBride and S.~Gordon, \emph{Computer Program for Calculation of Complex Chemical Equilibrium Compositions and Applications, I. Analysis}, NASA Reference Publication 1311, 1994.
+
+\bibitem{gordon1996} S.~Gordon and B.~J.~McBride, \emph{Computer Program for Calculation of Complex Chemical Equilibrium Compositions and Applications, II. Users Manual and Program Description}, NASA Reference Publication 1311, 1996.
+
+\bibitem{nist_webbook} National Institute of Standards and Technology, \emph{NIST Chemistry WebBook}, Fluid Data for Oxygen (O2) and Methane (CH4), \url{https://webbook.nist.gov}.
+
+\bibitem{sutton_biblarz} G.~P.~Sutton and O.~Biblarz, \emph{Rocket Propulsion Elements}, John Wiley \& Sons.
+
+\end{thebibliography}
+
+\clearpage
+\appendix
+\section{Master Parameter Summary}
+
+Table \ref{tab:master-params} summarizes every parameter pinned down during this preliminary analytical phase of the project. Parameters belonging to later project phases (throttling mechanism, turning-vane final geometry, structural sizing, manufacturing, and test instrumentation) have not yet been determined and are marked accordingly.
+
+\begin{table}[h]
+\centering
+\caption{Master parameter summary -- analytical design phase.}
+\label{tab:master-params}
+\begin{tabular}{@{}p{3.1cm}p{5.6cm}p{5.0cm}@{}}
+\toprule
+Category & Parameter & Value \\
+\midrule
+\multirow{5}{*}{\parbox{2.8cm}{Mission \& requirements}}
+ & Target thrust & 750 N \\
+ & Chamber pressure & 20 bar \\
+ & Throttle ratio (target) & 3:1 (not yet analysed) \\
+ & Propellant pair & LOX / LCH4 \\
+ & O/F ratio & 3.2 \\
+\midrule
+\multirow{5}{*}{\parbox{2.8cm}{Propellant flow}}
+ & Total mass flow rate & 0.2754 kg/s \\
+ & Oxidizer mass flow rate & 0.2098 kg/s \\
+ & Fuel mass flow rate & 0.0656 kg/s \\
+ & Fuel exit velocity & 13.66 m/s \\
+ & Oxidizer exit velocity & 16.10 m/s \\
+\midrule
+\multirow{6}{*}{\parbox{2.8cm}{Pintle/sleeve geometry}}
+ & Pintle tip diameter, $D_t$ & 8 mm \\
+ & Pintle rod diameter, $D_p$ & 3 mm \\
+ & Pintle angle, $\alpha$ & 20$^\circ$ \\
+ & Annular gap, $t_{ag}$ & 0.5 mm \\
+ & Pintle gap thickness, $t_{pg}$ & 1.5 mm \\
+ & Opening distance at max thrust, $L_{tod}$ & 0.5 mm \\
+\midrule
+\multirow{4}{*}{\parbox{2.8cm}{Spiral manifold}}
+ & Starting area, $A_0$ & 12.6 mm$^2$ \\
+ & Minimum area (5\% floor), $A_{\min}$ & 0.63 mm$^2$ \\
+ & Starting / ending envelope radius & 25 mm / 15 mm (placeholder) \\
+ & Min.\ boundary-layer margin & 0.43 mm at $\theta = 343^\circ$ \\
+\midrule
+Throttling mechanism & Actuator, bushings, seals & Not yet determined -- future phase \\
+Turning vanes & Final count, angle, thickness & Not yet determined -- future phase \\
+Structural/material & Wall thickness, material, safety factor & Not yet determined -- future phase \\
+Manufacturing & Method, tolerances & Not yet determined -- future phase \\
+Test \& instrumentation & Flow meters, pressure taps, cameras & Not yet determined -- future phase \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}
