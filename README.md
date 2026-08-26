@@ -4,7 +4,7 @@
 
 A design and analysis project for a throttleable pintle injector (the coaxial, variable-area injector used in engines like the Apollo LM descent stage and SpaceX's Merlin), sized for a LOX/LCH4 propellant pair. Work spans analytical feasibility studies, a spiral-vane manifold design, SolidWorks CAD, and a formal writeup.
 
-**Authors:** Prathit Sharma (B.Tech. Mechanical Engineering, Indian Institute of Petroleum and Energy), Sreyesha Akella (B.Tech. Aerospace Engineering, SRM Institute of Technology)
+**Author:** Prathit Sharma (B.Tech. Mechanical Engineering, Indian Institute of Petroleum and Energy)
 
 ## Repo structure
 
