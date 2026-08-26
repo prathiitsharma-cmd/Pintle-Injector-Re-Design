@@ -1,6 +1,6 @@
 # Building the report
 
-`main.tex` is the LaTeX source for the BSERC report. `main_preview.pdf` is a pre-built PDF if you just want to read it without compiling anything.
+`main.tex` is the LaTeX source for the report. `main_preview.pdf` is a pre-built PDF if you just want to read it without compiling anything.
 
 To build it yourself (requires a LaTeX distribution, e.g. TeX Live or MiKTeX):
 
