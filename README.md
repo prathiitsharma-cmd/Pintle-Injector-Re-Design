@@ -62,4 +62,4 @@ Everything else in this repository — the report, design guide, proposal, image
 
 ---
 
-**Prathit Sharma** · [Portfolio](https://prathiitsharma-cmd.github.io) · [LinkedIn](https://linkedin.com/in/prathit-sharma) · [GitHub](https://github.com/prathiitsharma-cmd)
+**Prathit Sharma** · [Portfolio](https://prathiitsharma-cmd.github.io) · [LinkedIn](https://www.linkedin.com/in/prathit-sharma-4b7896333) · [GitHub](https://github.com/prathiitsharma-cmd)
